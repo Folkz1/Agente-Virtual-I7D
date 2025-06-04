@@ -1,0 +1,294 @@
+Proposta de Escopo Detalhada: Agente Virtual I7D
+Data: 04 de junho de 2025
+
+Projeto: Desenvolvimento e Implementação do Agente Virtual para o Inglês em 7 Dias (I7D)
+
+1. Introdução
+Este documento descreve o escopo detalhado para o desenvolvimento do Agente Virtual I7D. O objetivo central do projeto é automatizar, qualificar e otimizar o processo de engajamento de leads para o curso "Inglês em 7 Dias" – tanto para contatos iniciados pelo agente (proativos) quanto para leads que entram em contato diretamente (reativos, ex: via anúncios Meta Ads). O sistema utilizará a plataforma n8n e a API oficial do WhatsApp, com uma base de conhecimento gerenciada via RAG (Retrieval Augmented Generation) e persistência de dados no Supabase. O Agente visa aumentar a eficiência da captação e a taxa de matrículas no curso.
+
+2. Objetivos do Agente Virtual
+O Agente Virtual I7D será projetado para:
+
+Qualificar Leads Eficazmente: Identificar e priorizar leads com o perfil adequado para o curso (inglês básico ou superior), filtrando contatos não qualificados, independentemente da origem do contato.
+
+Aumentar a Taxa de Matrícula: Conduzir o lead de forma persuasiva e informativa através de um funil de conversão, culminando em matrículas ou agendamentos.
+
+Otimizar o Agendamento de Conversas: Facilitar o agendamento de videoconferências entre leads qualificados e a equipe I7D (Cynthia ou equipe).
+Fornecer Informação Consistente e Padronizada: Apresentar a proposta do treinamento, depoimentos e avaliações de forma clara e uniforme.
+
+Operar com Comunicação Profissional e Empática: Manter um tom de voz profissional, humano, empático e direto, adaptando-se ao ritmo do lead.
+
+3. Funcionalidades do Agente Virtual
+3.1. Funcionalidades Centrais:
+
+Gestão de Contatos Entrantes (Reativo): Responder prontamente a leads que iniciam a conversa via WhatsApp (ex: provenientes de anúncios Meta Ads, landing pages, redes sociais), aplicando os fluxos de qualificação.
+
+Abordagem Proativa e Cadenciada: Realizar o primeiro contato com leads captados por formulários ou indicações  e seguir com uma cadência de mensagens por até 3 dias (Dia 1, Intra-Dia 1, Dia 2, Intra-Dia 2, Dia 3).
+
+
+
+
+Filtro de Qualificação: Aplicar o pré-requisito de nível de inglês (mínimo básico) para dar seguimento à conversa.
+Roteiro Inteligente para Perguntas de Preço: Utilizar um script específico para responder a questionamentos sobre valores, focando primeiro nos diferenciais do curso.
+
+Agendamento de Videoconferências: Oferecer e facilitar o agendamento de conversas por vídeo com a equipe I7D.
+
+Envio Estratégico de Materiais: Compartilhar links de vídeos de depoimentos, avaliações do Google e outros materiais explicativos.
+
+Gestão de Desinteresse/Não Qualificação: Encerrar interações de forma respeitosa caso o lead demonstre claro desinteresse ou não se enquadre nos pré-requisitos.
+
+
+Integração e Registro de Status (CRM/n8n): Registrar e atualizar o status dos leads (ex: aguardando_resposta, agendado, não_interessado).
+
+Processamento de Webhooks: Atualizar status conforme webhooks de agendamento preenchido.
+
+Encerramento Automático de Fluxos: Encerrar automaticamente o acompanhamento após 3 dias sem interação do lead.
+
+3.2. Funcionalidades Secundárias:
+
+Personalização de Mensagens: Utilizar variáveis dinâmicas como {{nome_lead}}, {{nível_informado}}, {{objetivo_informado}} para criar uma comunicação mais próxima e relevante.
+Reengajamento Automatizado de Leads: Implementar fluxos para tentativas de reengajamento futuras (ex: após 30/60/90 dias) com leads que não converteram inicialmente.
+Tratamento de Leads Avançados: Verificar a busca atual de leads com nível avançado e, se houver interesse, agendar conversa individual.
+
+
+Reforço de Informações Chave: Reforçar consistentemente que o curso é presencial em Belo Horizonte (BH).
+
+4. Fluxo de Interação Principal do Usuário (Lead)
+Início da Interação (Reativo ou Proativo):
+Reativo: O lead ({{nome_lead}}) envia uma mensagem inicial para o WhatsApp do I7D (ex: vindo de um anúncio no Meta Ads, clicando em um link de "Saiba Mais" em redes sociais ou landing page).
+
+Proativo: Um novo lead é adicionado ao sistema (ex: preencheu formulário no site, foi indicado)  e o agente inicia o contato.
+Contato Inicial e Qualificação (Adaptado do Dia 1):
+O Agente Virtual I7D responde à mensagem inicial do lead (se reativo) ou envia a primeira mensagem (se proativo). A mensagem buscará apresentar o curso, entender o nível de inglês do lead e seu objetivo (ex: "Oi {{nome_lead}}! Vi seu interesse no Inglês em 7 Dias. Para que eu possa te ajudar melhor, você já estudou inglês antes e qual seu nível atual (básico, intermediário, avançado)?"). O agente confirma se o lead já estudou inglês antes.
+Com base na resposta, o agente segue o fluxo de qualificação:
+Se o lead for qualificado (nível básico  ou intermediário ), o agente apresenta a proposta: "O I7D é um treinamento presencial em BH, imersivo e com foco em destravar a fala em tempo recorde. Se quiser entender se ele realmente faz sentido pro seu momento, podemos agendar uma videochamada."
+
+
+
+
+Se o lead for nível avançado, o agente busca entender suas necessidades específicas  e oferece uma conversa individual se aplicável.
+
+Se não qualificado (inglês zero), aplica-se a regra de encerramento.
+Interação e Nutrição:
+Se o lead solicitar mais detalhes, o agente envia links para vídeos de depoimentos ({{link_video_depoimentos}}) e avaliações ({{link_avaliacoes_google}}).
+
+
+Se o lead perguntar o preço, o agente segue o "Roteiro – Resposta para Lead que Pergunta o Preço", priorizando a contextualização do valor  antes de informar o investimento e mencionando a garantia.
+
+
+Follow-up (se aplicável): Caso não haja resposta imediata ou agendamento, o agente realiza contatos de reforço programados (Intra-Dia 1, Dia 2, Intra-Dia 2, Dia 3 ), sempre de forma respeitosa, com mensagens levemente diferentes, e oferecendo a opção de encerrar o contato. As mensagens são espaçadas por no mínimo 3 horas e enviadas antes das 20h.
+
+
+
+
+Decisão do Lead:
+Interesse em Agendar: O lead expressa desejo de conversar com um humano. O agente oferece horários  ou o link para autoagendamento ({{link_agendamento}}).
+Desinteresse/Não Qualificado: O lead informa não ter interesse ("não quero", "não é pra mim"), já estar em outro curso, ou ter nível zero de inglês. O agente agradece e encerra o contato educadamente.
+
+
+Agendamento Confirmado: Após o lead agendar (via link ou com ajuda do agente), o sistema (n8n) recebe a confirmação (via webhook com parâmetros de rastreamento ), atualiza o status do lead para agendado, cessa os contatos automáticos da cadência principal, e notifica a equipe humana.
+
+5. Principais Regras de Negócio e Diretrizes de Comunicação
+Tom de Voz: Profissional, empático e direto. Humano, sem parecer robô. Amigável, mas respeitoso — especialmente com público sênior.
+
+Estilo: Frases curtas e naturais. Sem emojis. Nunca insistente. Adapta-se ao ritmo do lead.
+
+Restrições Fundamentais:
+NÃO PODE: Prometer fluência.
+
+NÃO PODE: Garantir transformação sem ressalvas.
+NÃO PODE: Enviar valores diretamente via bot (na primeira pergunta sobre preço, seguir roteiro específico).
+
+
+NÃO PODE: Continuar contato após recusa clara.
+
+Obrigações:
+DEVE: Encaminhar leads com dúvidas para videoconferência.
+DEVE: Redirecionar leads avançados para conversa de alinhamento.
+DEVE: Reforçar que o curso é presencial em BH.
+
+DEVE: Filtrar e dispensar respeitosamente leads com nível zero de inglês, explicando o pré-requisito.
+
+Horários de Contato: Mensagens de reforço devem ser espaçadas (mínimo 3h entre reforços)  e evitar envio após as 20h.
+
+
+
+Encerramento de Fluxo: O fluxo ENCERRA se o lead diz "não quero", "não é pra mim", "inglês zero", "já estou fazendo outro curso", ou se call/videoconferência é agendada/realizada. NÃO ENCERRA com visualização sem resposta, "Ok", "Legal", ou clique sem agendamento.
+
+6. Fluxos de Interação Detalhados e Exemplos de Aplicação de Regras – Agente Virtual I7D
+Introdução:
+Este segmento detalha exemplos de fluxos de conversação e a aplicação prática das regras de negócio para o Agente Virtual do Inglês em 7 Dias (I7D). O objetivo é ilustrar como o agente interagirá com os leads via WhatsApp, utilizando a base de conhecimento via RAG, o Supabase para persistência de dados, e como ocorrerá o encaminhamento para a equipe I7D. Estes exemplos são baseados nos manuais e roteiros fornecidos para o projeto "Automação da Abordagem e Qualificação de Leads para o Inglês em 7 Dias".
+
+A. Exemplo de Fluxo de Bate-Papo Completo (Lead "Sofia" - Qualificada e Agendada)
+
+Cenário: Sofia viu um anúncio do I7D, clicou no link que a direcionou para o WhatsApp e iniciou a conversa. Ela tem nível intermediário e busca destravar a fala para o trabalho.
+Participantes:
+Agente I7D: O chatbot.
+Sofia: O lead.
+Equipe I7D: Humano que recebe o lead qualificado via WhatsApp.
+(Início da Interação – Dia 1: Lead Inicia Contato)
+
+[WhatsApp - Sofia para Agente I7D]
+Sofia: Olá, gostaria de mais informações sobre o curso Inglês em 7 Dias.
+
+[WhatsApp - Agente I7D para Sofia]
+Agente I7D: Olá Sofia! Que ótimo que você entrou em contato! Sou o assistente virtual do Inglês em 7 Dias. Para que eu possa te ajudar melhor, você poderia me dizer qual seu nível de inglês atualmente? (Ex: Básico, Intermediário, Avançado). E qual seu principal objetivo ao buscar o I7D? 😊
+
+[WhatsApp - Sofia para Agente I7D]
+Sofia: Meu inglês é intermediário. Consigo ler bem e entender bastante, mas na hora de falar eu travo, principalmente em reuniões de trabalho. Queria destravar isso.
+
+[WhatsApp - Agente I7D para Sofia]
+Agente I7D: Entendo perfeitamente, Sofia. Muitos dos nossos alunos chegam com essa mesma dificuldade: entendem bem, mas sentem um bloqueio na fala, especialmente em situações de pressão como reuniões de trabalho. O Inglês em 7 Dias é um treinamento presencial e imersivo aqui em BH, desenhado exatamente para destravar a fala e aumentar a confiança de quem já tem uma base no idioma. 👍
+Você mencionou reuniões de trabalho. O I7D foca bastante em simulações de situações reais. Você acha que praticar conversação em cenários assim te ajudaria?
+
+[WhatsApp - Sofia para Agente I7D]
+Sofia: Sim, com certeza! Eu preciso perder o medo de errar e ganhar mais vocabulário para essas situações. Como funciona a dinâmica do curso? São aulas tradicionais?
+
+[WhatsApp - Agente I7D para Sofia]
+Agente I7D: Excelente pergunta, Sofia! [ACIONAMENTO RAG - Consulta sobre "dinâmica do curso" e "aulas tradicionais"] A dinâmica do I7D é bem diferente das aulas tradicionais. É uma imersão total durante 7 dias consecutivos. Não focamos em longas explicações gramaticais ou exercícios repetitivos. Em vez disso, você participa ativamente de atividades práticas, debates, apresentações e simulações que replicam o uso real do inglês, incluindo contextos profissionais. O objetivo é que você pense e se comunique em inglês o tempo todo, com orientação constante para corrigir e expandir seu vocabulário e fluidez.
+Se você quiser entender em detalhes como o I7D pode te ajudar a destravar sua fala para o trabalho, podemos agendar uma videochamada rápida com nossa especialista, a Cynthia. Ela pode te explicar tudo e tirar suas dúvidas. Que tal amanhã às 10h ou na sexta-feira às 15h? 
+
+
+[WhatsApp - Sofia para Agente I7D]
+Sofia: Sexta às 15h seria perfeito! Antes de confirmar, qual o investimento para participar?
+
+[WhatsApp - Agente I7D para Sofia]
+Agente I7D: Ótimo, Sofia! Sobre o investimento, posso te adiantar que o I7D é um programa completo e intensivo. [Seguindo Roteiro de Preço - Etapa 1 ] Mas antes de falarmos de valores, é importante você entender o que está incluso e o retorno que ele pode te trazer, especialmente para sua carreira. Muitos participantes relatam que o avanço aqui é comparável a meses ou anos de estudo convencional.
+Para você ter uma ideia do impacto, posso te mandar um vídeo curto com depoimentos de ex-alunos? {{link_video_depoimentos_exemplo}} 
+Na nossa conversa de sexta às 15h, a Cynthia pode te apresentar todos os detalhes do investimento, formas de pagamento e o que exatamente está coberto, combinado? 
+
+
+
+
+
+[WhatsApp - Sofia para Agente I7D]
+Sofia: Combinado! Pode confirmar sexta às 15h então. Vou ver o vídeo.
+
+[WhatsApp - Agente I7D para Sofia]
+Agente I7D: Perfeito, Sofia! Seu agendamento para sexta-feira às 15h com a Cynthia está confirmado! Você receberá um lembrete e o link para a videochamada mais próximo da data. Tenho certeza que será muito produtivo! Até lá! 👋
+
+[LOG INTERNO - SUPABASE]
+
+Lead ID: [ID_SOFIA_SUPABASE]
+Nome: Sofia
+Contato: [Numero_WhatsApp_Sofia]
+Nível Informado: Intermediário
+Objetivo Informado: Destravar fala para reuniões de trabalho
+Interação: [Log completo da conversa]
+Status: Agendado 
+Horário Agendado: [Data_Sexta] 15:00
+RAG Consultas: "dinâmica do curso I7D", "aulas tradicionais I7D"
+Materiais Enviados: {{link_video_depoimentos_exemplo}}
+[WhatsApp - Agente I7D para Equipe I7D (Número/Grupo Configurado)]
+Agente I7D: 🎯 Novo Lead Qualificado e Agendado! 🎯
+
+Nome: Sofia
+Contato: [Numero_WhatsApp_Sofia] (Link direto: wa.me/[Numero_WhatsApp_Sofia])
+Nível: Intermediário
+Objetivo: Destravar a fala para reuniões de trabalho, ganhar vocabulário profissional.
+Agendamento: SEXTA-FEIRA, [Data_Sexta] às 15:00 com Cynthia.
+Resumo da Interação: Sofia iniciou o contato buscando informações. Demonstrou interesse em melhorar a comunicação para o trabalho. Perguntou sobre a dinâmica e o preço. Foi informada sobre o método de imersão e recebeu o link de depoimentos. Confirmou o agendamento.
+Próximo Passo: Cynthia realizar videochamada de alinhamento e apresentação detalhada.
+
+B. Demonstração de Regras de Negócio Específicas com Exemplos:
+
+Regra: Lead informa "Inglês Zero"
+
+Fonte no Manual I7D: "Situação: Lead informa inglês zero -> Ação Esperada: Agradecer interesse + explicar pré-requisito + encerrar contato." 
+Funcionamento no Agente: O sistema identifica termos como "inglês zero", "não falo nada", "nenhum conhecimento". A informação é registrada no Supabase. O agente envia a mensagem padrão e encerra o fluxo ativo para este lead, não o incluindo em cadências de follow-up.
+Exemplo de Diálogo:
+Agente I7D: Olá! Sou o assistente virtual do Inglês em 7 Dias. Para te ajudar melhor, qual seu nível de inglês?
+Lead Marcos: Oi, eu não sei nada de inglês, sou nível zero mesmo.
+Agente I7D: Entendi, Marcos. Agradeço muito seu interesse no Inglês em 7 Dias! 😊 Nosso treinamento é uma imersão intensiva e presencial, e para que o aluno aproveite ao máximo as atividades de conversação desde o início, é importante ter pelo menos um conhecimento básico do idioma. Neste momento, o I7D pode não ser o mais indicado para você. Mas guarde nosso contato para o futuro! Foi um prazer falar contigo! 
+
+[LOG INTERNO - SUPABASE]: Lead Marcos, Nível: Zero, Status: Não Qualificado (Fora do Pré-requisito), Fluxo Encerrado.
+Regra: Roteiro para Pergunta de Preço (Lead Insistente)
+
+Fonte no Manual I7D: "Roteiro – Resposta para Lead que Pergunta o Preço" -> Etapa 3: "Se o lead insistir -> Mensagem com ancoragem de valor..." 
+Funcionamento no Agente: Se após a primeira tentativa de contextualizar o valor (Etapa 1 do roteiro ), o lead insistir diretamente no preço antes do agendamento.
+Exemplo de Diálogo:
+Lead Laura: Entendi sobre o método, mas eu realmente preciso saber o preço antes de agendar qualquer coisa. Pode me informar?
+Agente I7D: Compreendo sua necessidade de saber o valor, Laura. A matrícula no I7D atualmente está a partir de R$ X à vista ou em até 12x [Valor Fictício para Exemplo]. Mas o que costuma chamar atenção mesmo é o resultado rápido e a transformação na confiança dos nossos alunos – e o fato de termos uma garantia total: se até o 2º dia você sentir que não é pra você, devolvemos o valor integralmente. Quer que eu te explique o que está incluso nesse investimento e como funciona essa garantia na nossa conversa agendada? Assim você pode avaliar tudo com calma.
+
+[LOG INTERNO - SUPABASE]: Lead Laura, Interação: Pergunta de preço insistente, Roteiro de Preço Etapa 3 aplicada.
+Regra: Cadência de Contato (Ex: Dia 2 – Reforço de Contato)
+
+Fonte no Manual I7D: "Dia 2 – Reforço de Contato -> Objetivo da Etapa: Retomar o contato com leads que não interagiram no Dia 1." 
+Funcionamento no Agente: O Supabase rastreia o último contato e a ausência de resposta significativa. Se o lead não respondeu às mensagens do Dia 1 (inicial e reforços intra-dia 1), o sistema dispara a mensagem do Dia 2 no dia seguinte.
+
+Exemplo de Ação do Sistema (Mensagem enviada no Dia 2):
+[WhatsApp - Agente I7D para Lead Bruno (que não respondeu no Dia 1)]
+Agente I7D: Oi Bruno, tudo bem? Ontem te mandei uma mensagem sobre o Inglês em 7 Dias, e queria reforçar que ainda dá tempo de participar da próxima turma. Se você já estudou inglês e se sente travado ou estagnado, esse treinamento presencial aqui em BH pode ser o que faltava para sua evolução. Posso te agendar para uma conversa rápida e sem compromisso com nossa equipe. Que tal? 
+
+
+[LOG INTERNO - SUPABASE]: Lead Bruno, Status: Cadência Dia 2 Iniciada, Aguardando Resposta.
+Regra: Uso de RAG para Perguntas Específicas sobre o Curso
+
+Objetivo: Fornecer respostas detalhadas e precisas com base nos manuais I7D, mesmo para perguntas não explicitamente scriptadas.
+Funcionamento no Agente: A pergunta do lead é vetorizada e comparada com os embeddings dos documentos do I7D no Supabase. Os trechos mais relevantes são recuperados e usados por um LLM para gerar uma resposta contextualizada.
+Exemplo de Diálogo:
+Lead Carla: Olá, eu vi que o curso é presencial em BH. Eu não sou de BH. Vocês têm alguma previsão de curso online ou em outras cidades?
+Agente I7D: Olá, Carla! [ACIONAMENTO RAG - Consulta sobre "curso online" e "outras cidades"] No momento, o formato exclusivo do Inglês em 7 Dias é 100% presencial e intensivo, acontecendo apenas em Belo Horizonte. Esse formato foi cuidadosamente desenhado para proporcionar uma imersão completa que acreditamos ser fundamental para os resultados rápidos que nossos alunos alcançam. Ainda não temos previsão para edições online ou em outras cidades, pois prezamos pela qualidade e pela experiência única que o presencial oferece. Muitos alunos de outras localidades optam por vir a BH para participar, combinando o curso com uma semana de foco total no inglês. Se essa for uma possibilidade para você, podemos conversar sobre como viabilizar sua participação!
+[LOG INTERNO - SUPABASE]: Lead Carla, Pergunta_RAG: "I7D online ou outras cidades", Resposta_RAG_Gerada: [Texto da resposta], Status: Informação Fornecida.
+Regra: Encerramento Educado por Desinteresse Claro (Fluxo Dia 3)
+
+Fonte no Manual I7D: "Dia 3 – Último Contato da Cadência -> Objetivo da Etapa: Encerrar a cadência... comunicando que o acompanhamento automático será encerrado." 
+Funcionamento no Agente: Se o lead não interagiu significativamente após os contatos do Dia 1 e Dia 2.
+Exemplo de Diálogo (Opção 3 do Manual - Dia 3):
+[WhatsApp - Agente I7D para Lead Tiago (que não respondeu nos Dias 1 e 2)]
+Agente I7D: Oi Tiago, finalizando nosso contato por aqui. Sabemos que tomar uma decisão exige clareza — e é exatamente isso que uma conversa rápida com nossa equipe pode te dar sobre o Inglês em 7 Dias. Posso agendar ainda hoje uma videochamada para mostrar como o I7D funciona e o que pode fazer por você. Se quiser, me avisa e te mando o link agora. Do contrário, ficamos à disposição quando quiser retomar. Um abraço!
+
+
+
+[LOG INTERNO - SUPABASE]: Lead Tiago, Status: Cadência Dia 3 Enviada. Se não houver resposta em 24h: Status: Fluxo Concluído Sem Resposta - Inativo (para possível reengajamento futuro).
+Regra: Transferência para Atendimento Humano
+
+Objetivo: Garantir que o lead seja atendido por um humano quando solicitar explicitamente  ou quando o agente virtual não conseguir compreender a solicitação.
+Funcionamento no Agente:
+Solicitação Explícita: O sistema identifica palavras-chave e frases como "falar com atendente", "quero um humano", "conversar com alguém", "assistência pessoal".
+Agente Confuso: Se o agente não conseguir entender a intenção do lead após um número definido de tentativas (ex: 2-3 vezes) ou se o RAG consistentemente não encontrar respostas relevantes, um mecanismo de fallback é acionado.
+Em ambos os casos, o agente informa ao lead que irá transferi-lo e envia uma notificação para a Equipe I7D.
+Exemplo de Diálogo (Solicitação Explícita):
+Lead Fernanda: Gostaria de falar com uma pessoa, por favor. Tenho umas dúvidas muito específicas sobre minha situação.
+Agente I7D: Entendido, Fernanda! Sem problemas. Vou te transferir agora mesmo para um dos nossos consultores humanos. Eles poderão te ajudar com suas dúvidas específicas. Só um momento, por favor.
+[LOG INTERNO - SUPABASE]: Lead Fernanda, Status: Transferência Solicitada Pelo Lead, Aguardando Atendimento Humano.
+[WhatsApp - Agente I7D para Equipe I7D (Número/Grupo Configurado)] Agente I7D: ⚠️ Solicitação de Atendimento Humano! ⚠️ Nome: Fernanda Contato: [Numero_WhatsApp_Fernanda] (Link direto: wa.me/[Numero_WhatsApp_Fernanda]) Motivo: Lead solicitou falar diretamente com um atendente para tirar dúvidas específicas. Histórico da Conversa (últimas 3 mensagens): Fernanda: Gostaria de falar com uma pessoa, por favor. Tenho umas dúvidas muito específicas sobre minha situação. Agente I7D: Entendido, Fernanda! Sem problemas. Vou te transferir agora mesmo para um dos nossos consultores humanos. Eles poderão te ajudar com suas dúvidas específicas. Só um momento, por favor. Próximo Passo: Humano deve assumir a conversa com Fernanda.
+Exemplo de Diálogo (Agente Confuso):
+Lead Ricardo: E sobre o material didático, ele é atualizado com que frequência e como é o acesso pós-curso? E o certificado tem validade internacional?
+Agente I7D: [ACIONAMENTO RAG - Tentativa 1 - Resposta parcial ou não totalmente clara] Nosso material é constantemente revisado para garantir a melhor experiência...
+Lead Ricardo: Não foi bem isso. Quero saber especificamente sobre a frequência de atualização do material que usamos NOS 7 DIAS e se o certificado é reconhecido fora do Brasil.
+Agente I7D: [ACIONAMENTO RAG - Tentativa 2 - Ainda confuso ou RAG não encontra resposta precisa] Entendo que você quer detalhes sobre o material e o certificado... [Resposta genérica]
+Agente I7D: Ricardo, para garantir que todas as suas dúvidas sobre os detalhes do material didático e a validade internacional do certificado sejam respondidas com precisão, vou te conectar com um dos nossos especialistas. Eles terão todas as informações detalhadas para você. Só um instante!
+[LOG INTERNO - SUPABASE]: Lead Ricardo, Status: Transferência por Confusão do Agente, Aguardando Atendimento Humano, Última Pergunta: "frequência de atualização material 7 dias e validade internacional certificado".
+[WhatsApp - Agente I7D para Equipe I7D (Número/Grupo Configurado)] Agente I7D: 🆘 Agente Confuso - Transferência para Humano! 🆘 Nome: Ricardo Contato: [Numero_WhatsApp_Ricardo] (Link direto: wa.me/[Numero_WhatsApp_Ricardo]) Motivo: Agente não conseguiu responder satisfatoriamente às perguntas do lead sobre material didático e certificado após múltiplas tentativas. Última Pergunta do Lead: "Quero saber especificamente sobre a frequência de atualização do material que usamos NOS 7 DIAS e se o certificado é reconhecido fora do Brasil." Próximo Passo: Humano deve assumir a conversa e esclarecer as dúvidas de Ricardo.
+C. O que o Sistema de Interação Precisa Ter (Requisitos Chave):
+
+Para que esses fluxos e regras funcionem conforme demonstrado, o sistema precisa:
+
+Motor de NLU/NLP Robusto: Para interpretar corretamente as intenções e extrair informações das mensagens dos leads (Ex: identificar nível de inglês, objetivos, perguntas sobre preço, desinteresse, solicitação de falar com humano).
+Gerenciamento de Estado da Conversa: Cada lead deve ter seu estado (Ex: aguardando_resposta_dia1, agendado, recusou_contato, qualificado_para_humano, transferencia_solicitada_lead, transferencia_agente_confuso) armazenado e atualizado no Supabase para que o agente saiba qual a próxima ação correta.
+Integração com RAG:
+Acesso eficiente à base de conhecimento vetorizada no Supabase (ou vector store).
+Capacidade de enviar a pergunta do usuário e os contextos recuperados para um LLM gerar a resposta.
+Lógica de Cadência e Agendamento: Um sistema (pode ser no orquestrador do bot) para gerenciar o tempo entre as mensagens de follow-up e para verificar a disponibilidade de horários para agendamento (se integrado a um calendário) ou oferecer horários fixos.
+Templates de Mensagens Parametrizáveis: Para personalizar as mensagens com nome do lead, horários, links, etc. 
+Mecanismo de Encaminhamento para Humanos: Capacidade de formatar e enviar a mensagem de resumo do lead qualificado (ou que necessita de ajuda) para o WhatsApp da equipe I7D, indicando claramente o motivo do encaminhamento.
+Tratamento de Erros e Exceções:
+O que acontece se o RAG não encontrar uma boa resposta?
+O que acontece se o lead enviar uma mensagem ambígua?
+Lógica de "confusão": Contador de tentativas de entendimento ou de respostas insatisfatórias do RAG antes de acionar o fallback para transferência humana.
+O agente deve ter respostas padrão para pedir esclarecimento ou para informar sobre a transferência.
+Interface de Administração (Desejável): Para a equipe I7D visualizar logs, atualizar a base de conhecimento do RAG no Supabase e, possivelmente, ajustar algumas regras ou templates de mensagem sem necessidade de código.
+Detecção de Intenção de Falar com Humano: Um módulo específico ou configuração no NLU para identificar com alta precisão quando o lead expressa o desejo de interação humana.
+7. Próximos Passos (Sugestão)
+Com a aprovação deste escopo detalhado, os próximos passos incluiriam:
+
+Planejamento técnico da arquitetura da solução no n8n, definindo nós, fluxos e integrações.
+Configuração do Supabase para armazenamento de dados dos leads e para a base de conhecimento vetorizada do RAG.
+Desenvolvimento e implementação dos fluxos de automação no n8n, cobrindo os cenários proativo e reativo, incluindo a lógica de cadência, qualificação, agendamento e encaminhamento.
+Treinamento e otimização do modelo RAG com o conteúdo do Manual_Completo_Agente_Virtual_I7D.docx.
+Fase de testes exaustivos, cobrindo todos os fluxos de conversa, regras de negócio e cenários de exceção.
+Validação com a equipe I7D.
+Implantação gradual (piloto) e monitoramento contínuo para ajustes e melhorias.
+8. Considerações Finais
+Este documento de escopo detalhado serve como um guia fundamental para a criação do Agente Virtual I7D. A natureza dinâmica das interações com leads e a evolução das necessidades do negócio podem requerer ajustes e refinamentos ao longo do ciclo de vida do projeto. A colaboração contínua entre todas as partes interessadas será crucial para o sucesso e a otimização constante do agente.
