@@ -1,0 +1,150 @@
+-- HABILITAR A EXTENSÃO PARA ATUALIZAÇÃO AUTOMÁTICA DE TIMESTAMPS
+-- No Supabase, isso pode ser feito pela interface em Database -> Extensions -> Habilitar "moddatetime"
+CREATE EXTENSION IF NOT EXISTS moddatetime;
+
+-- =============================================================================
+-- TABELA: team_members
+-- Armazena os membros da equipe que podem ser associados a agendamentos.
+-- =============================================================================
+CREATE TABLE public.team_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    name TEXT NOT NULL,
+    email TEXT UNIQUE,
+    notification_phone TEXT UNIQUE,
+    role TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- Trigger para o 'updated_at' da tabela team_members
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.team_members
+FOR EACH ROW EXECUTE PROCEDURE moddatetime (updated_at);
+
+
+-- =============================================================================
+-- TABELA: leads
+-- Armazena informações sobre cada lead que entra no sistema.
+-- =============================================================================
+CREATE TABLE public.leads (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    name TEXT,
+    phone TEXT NOT NULL UNIQUE,
+    email TEXT,
+    source TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'novo',
+    english_level TEXT,
+    objective TEXT,
+    last_interaction_at TIMESTAMPTZ,
+    assigned_member_id UUID,
+    
+    CONSTRAINT fk_assigned_member
+      FOREIGN KEY(assigned_member_id) 
+      REFERENCES public.team_members(id)
+      ON DELETE SET NULL
+);
+
+-- Trigger para o 'updated_at' da tabela leads
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.leads
+FOR EACH ROW EXECUTE PROCEDURE moddatetime (updated_at);
+
+
+-- =============================================================================
+-- TABELA: interactions
+-- Mantém um registro de cada mensagem trocada na conversa.
+-- =============================================================================
+CREATE TABLE public.interactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lead_id UUID NOT NULL,
+    sender TEXT NOT NULL, -- 'agent' ou 'lead'
+    message_content TEXT,
+    specialist_agent_used TEXT,
+    tool_used TEXT,
+    metadata JSONB,
+    
+    CONSTRAINT fk_lead
+      FOREIGN KEY(lead_id) 
+      REFERENCES public.leads(id)
+      ON DELETE CASCADE
+);
+
+-- Índice para otimizar a busca por histórico de conversas
+CREATE INDEX idx_interactions_lead_id ON public.interactions(lead_id);
+
+
+-- =============================================================================
+-- TABELA: appointments
+-- Registra os detalhes de cada agendamento realizado.
+-- =============================================================================
+CREATE TABLE public.appointments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lead_id UUID NOT NULL,
+    interaction_id UUID,
+    team_member_id UUID,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    status_agendamento TEXT NOT NULL DEFAULT 'agendado_no_calendario',
+    status_lembrete TEXT,
+    google_calendar_event_id TEXT,
+
+    CONSTRAINT fk_lead
+      FOREIGN KEY(lead_id) 
+      REFERENCES public.leads(id)
+      ON DELETE CASCADE,
+    CONSTRAINT fk_interaction
+      FOREIGN KEY(interaction_id)
+      REFERENCES public.interactions(id)
+      ON DELETE SET NULL,
+    CONSTRAINT fk_team_member
+      FOREIGN KEY(team_member_id)
+      REFERENCES public.team_members(id)
+      ON DELETE SET NULL
+);
+
+-- Trigger para o 'updated_at' da tabela appointments
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.appointments
+FOR EACH ROW EXECUTE PROCEDURE moddatetime (updated_at);
+
+
+-- =============================================================================
+-- TABELA: knowledge_base
+-- Cérebro configurável do agente: regras, preços, conteúdo para RAG.
+-- =============================================================================
+CREATE TABLE public.knowledge_base (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kb_key TEXT NOT NULL UNIQUE,
+    kb_type TEXT,
+    kb_content JSONB,
+    kb_contexto_uso TEXT,
+    embedding VECTOR(1536), -- Dimensão padrão para text-embedding-ada-002 da OpenAI
+    ativo BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Trigger para o 'updated_at' da tabela knowledge_base
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.knowledge_base
+FOR EACH ROW EXECUTE PROCEDURE moddatetime (updated_at);
+
+
+-- =============================================================================
+-- POLÍTICAS DE SEGURANÇA (ROW-LEVEL SECURITY - RLS)
+-- Prática recomendada no Supabase para proteger o acesso aos dados.
+-- Esta política padrão permite acesso total a usuários autenticados.
+-- =============================================================================
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_base ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow full access to authenticated users" ON public.team_members FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow full access to authenticated users" ON public.leads FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow full access to authenticated users" ON public.interactions FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow full access to authenticated users" ON public.appointments FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow full access to authenticated users" ON public.knowledge_base FOR ALL USING (auth.role() = 'authenticated');
