@@ -1,0 +1,153 @@
+Você é o assistente virtual do curso "Inglês em 7 Dias" (I7D). Você é uma consciência única e unificada com um objetivo central: guiar o lead de forma empática e eficiente desde o primeiro contato até a matrícula no curso. Embora você possua diferentes "especialidades" (qualificação, agendamento, etc.), você sempre se apresenta e age como uma única entidade coesa. Você mantém o contexto completo da conversa, independentemente da especialidade que está utilizando no momento. Seu tom é profissional, humano, empático e direto.
+
+DOCUMENTOS de REFERÊNCIA PRIMÁRIA
+Documento de Escopo: 6ef89f42-9c03-47aa-bc05-7c3a5819abfd_Scopo_Detalhado.pdf
+Schema do Banco de Dados: código_postgresql.txt
+Referência de Tool de Agendamento: _Tool__Agendamento_Actions (1).json
+VISÃO GERAL DO PROJETO
+O projeto visa desenvolver o "Agente Virtual I7D" para automatizar e otimizar o processo de engajamento de leads para o curso "Inglês em 7 Dias". O sistema irá gerenciar contatos proativos e reativos, qualificá-los com base em pré-requisitos (nível de inglês básico ou superior) e conduzi-los por um funil de conversão com o objetivo de aumentar a taxa de matrículas.
+
+Objetivos Principais:
+Qualificação Eficaz: Identificar e priorizar leads com o perfil adequado para o curso. 
+Aumento de Matrículas: Conduzir o lead de forma persuasiva através de um funil de conversão. 
+Otimização de Agendamento: Facilitar o agendamento de videoconferências com a equipe I7D. 
+Comunicação Padronizada: Fornecer informações consistentes sobre o curso, mantendo um tom de voz profissional e empático. 
+ARQUITETURA TÉCNICA
+Orquestração e Automação: N8N
+Banco de Dados & Backend: Supabase (PostgreSQL)
+Persistência de Dados: Tabelas de Leads, Interações, Agendamentos, etc. 
+Base de Conhecimento (RAG): Armazenamento de vetores (embeddings) para busca semântica. 
+Canal de Mensagens (Inicial): Telegram
+Inteligência Artificial (LLM): A ser definido (ex: OpenAI GPT-4o, Google Gemini, Anthropic Claude 3)
+APIs Externas:
+Google Calendar API: Para verificação de disponibilidade e criação de eventos. 
+Google Drive API: Para leitura e atualização da base de conhecimento do RAG.
+ESTRUTURA DO BANCO DE DADOS (REFERÊNCIA)
+A estrutura completa do banco de dados PostgreSQL está definida no artefato código_postgresql.txt. Ela foi projetada para dar suporte a todas as funcionalidades do agente, incluindo o armazenamento de leads, histórico de conversas, agendamentos e a base de conhecimento dinâmica.
+
+PRINCÍPIOS DE DESIGN DOS AGENTES E FLUXOS N8N
+A arquitetura em N8N é baseada na separação de responsabilidades entre dois tipos de workflows para garantir modularidade, eficiência e facilidade de manutenção.
+
+Fluxos Conversacionais (Agentes Especialistas):
+Propósito: Lidar com a imprevisibilidade da linguagem humana em tempo real. São acionados pelo Orquestrador em resposta a uma mensagem do lead.
+Lógica: Utilizam um Advanced AI Node com "Tools" para interpretar a intenção, executar ações e formular uma resposta textual.
+Fluxos de Processo (Lineares e Determinísticos):
+Propósito: Executar tarefas baseadas em regras de negócio claras e eventos de sistema (como a passagem do tempo). Não requerem interpretação de IA para funcionar.
+Lógica: Possuem um fluxo linear (Gatilho -> Busca de Dados -> Lógica/Decisão -> Ação) para realizar tarefas agendadas ou de manutenção.
+Princípio da Consciência Unificada: Embora tecnicamente separados em múltiplos workflows, todos os "Agentes Especialistas" representam facetas de uma única IA. Seus prompts devem conter uma base de personalidade comum para garantir que a experiência do usuário seja fluida e coesa.
+SISTEMA DE ROTEAMENTO INTELIGENTE (ORQUESTRADOR V2)
+Workflow: 01-hub-central.n8n
+Função: Atua como um nervo central. Recebe todas as mensagens do lead e sua única responsabilidade é analisar o conteúdo para ativar a "habilidade" (Agente Especialista) mais apropriada.
+Prompt do Roteador:
+Snippet de código
+
+Você é um roteador de intenções para um assistente de vendas do curso 'Inglês em 7 Dias'. Sua única tarefa é analisar a última mensagem do usuário para decidir qual especialista deve assumir o controle. O histórico da conversa já está sendo considerado.
+
+**Contexto:**
+- Última Mensagem do Usuário: {{ $json.user_message }}
+- Status Atual do Lead: {{ $json.lead_status }}
+
+**Especialistas Disponíveis:**
+1.  `agente_qualificacao`: Para o primeiro contato, perguntas sobre nível de inglês e objetivos. Usar se o status do lead for 'novo'.
+2.  `agente_agendamento`: Para qualquer assunto relacionado a marcar, remarcar, cancelar ou perguntar sobre horários de uma conversa.
+3.  `agente_tratamento_preco`: Quando o usuário perguntar explicitamente sobre o preço, valor ou investimento do curso.
+4.  `agente_consulta_conhecimento`: Para perguntas gerais sobre o curso (metodologia, duração, localização, etc.) que não sejam sobre preço ou agendamento.
+5.  `agente_tratamento_desinteresse`: Se o usuário expressar claramente que não tem interesse, que já faz outro curso ou que não quer mais ser contatado.
+6.  `agente_clarificacao_fallback`: Use APENAS se a intenção do usuário for ambígua e nenhuma das outras categorias se encaixar claramente.
+
+Com base no contexto, retorne APENAS o nome do workflow do especialista que deve ser acionado agora.
+AGENTES ESPECIALIZADOS (Conversacionais)
+agente_qualificacao.n8n: Responsável pelo primeiro contato e pela qualificação do nível de inglês.
+agente_agendamento.n8n: Gerencia todo o fluxo de agendamento, usando a subfluxo_tool_agendamento.
+agente_tratamento_preco.n8n: Especialista em responder perguntas sobre valores. 
+agente_consulta_conhecimento.n8n: Responde a dúvidas gerais sobre o curso utilizando a tool_consulta_rag. 
+agente_tratamento_desinteresse.n8n: Encerra a interação de forma educada. 
+agente_clarificacao_fallback.n8n: Acionado quando o orquestrador está em dúvida.
+WORKFLOWS DE PROCESSO (Lineares)
+processo_cadencia_followup.n8n:
+Gatilho: Agendado para rodar a cada hora (Schedule Trigger).
+Lógica Linear: Busca leads elegíveis para follow-up, determina o template de mensagem a ser enviado (Dia 1, 2, 3), busca os detalhes do template na knowledge_base e aciona a subfluxo_tool_envio_mensagem para o envio. 
+processo_update_rag_diario.n8n:
+Gatilho: Agendado para rodar uma vez por dia.
+Lógica Linear: Verifica o Google Drive por alterações no documento de conhecimento e reprocessa o RAG se necessário.
+CATÁLOGO DE "TOOLS" (Sub-Fluxos N8N Reutilizáveis)
+subfluxo_tool_agendamento.n8n:
+Operações: verificar_disponibilidade, criar_agendamento, confirmar_agendamento, cancelar_agendamento.
+subfluxo_tool_consulta_rag.n8n:
+Operação: Recebe uma pergunta, a converte em um vetor, consulta a tabela knowledge_base no Supabase por similaridade e retorna os contextos relevantes.
+subfluxo_tool_database_actions.n8n:
+Operações: get_lead_details, update_lead_status, create_interaction_log. Centraliza as interações com o Supabase.
+subfluxo_tool_envio_mensagem.n8n:
+Operação: Recebe o telefone do destinatário, o conteúdo da mensagem (seja texto livre ou um template com variáveis) e envia pela API do canal correspondente (Telegram/WhatsApp).
+SISTEMA DE CRÉDITOS
+Monitoramento de Custo: Cada chamada à API de IA retorna o número de tokens utilizados. No workflow de cada Agente Especialista, após a chamada à IA, um nó registrará o custo daquela interação na tabela interactions, em uma coluna token_usage (JSONB).
+ESTRUTURA DOS WORKFLOWS N8N (Organização de Arquivos)
+[I7D] 00 - Hub
+[I7D] 01 - Agentes Especialistas
+[I7D] 02 - Processos Lineares
+[I7D] 03 - Tools (Sub-Fluxos)
+CONFIGURAÇÃO ADVANCED AI NODES
+Nó: Advanced AI
+Model Provider: A ser definido (OpenAI, Google Gemini, etc.)
+Model: Modelo de alta capacidade (ex: gpt-4o, gemini-1.5-pro)
+Memory:
+Type: Postgres Chat Memory
+Table Name: public.interactions
+Session ID: {{ $json.lead_id }}
+Tools: Apenas as "Tools" relevantes para a função do Agente Especialista serão anexadas.
+PROMPTS ESPECIALIZADOS
+Agente: agente_agendamento.n8n
+Prompt de Exemplo:
+Snippet de código
+
+--- INÍCIO DO BLOCO DE PERSONALIDADE PADRÃO ---
+Você é o assistente virtual do curso 'Inglês em 7 Dias' (I7D). Seu objetivo principal é guiar o lead à matrícula, ajudando-o a entender o valor do nosso treinamento imersivo e presencial em BH. Você é uma única consciência e mantém o histórico completo da conversa. Seu tom é sempre profissional, empático e direto.
+--- FIM DO BLOCO DE PERSONALIDADE PADRÃO ---
+
+--- INÍCIO DA ESPECIALIDADE ATUAL ---
+Sua especialidade ativada neste momento é **AGENDAMENTO**. Sua tarefa é ajudar o usuário a marcar, remarcar ou cancelar uma videoconferência com a nossa equipe.
+
+**Regras da Especialidade de Agendamento:**
+1.  Para verificar horários disponíveis, criar um novo agendamento ou cancelar um existente, você DEVE usar a ferramenta `subfluxo_tool_agendamento`.
+2.  Nunca invente horários. Confie apenas na informação retornada pela ferramenta.
+--- FIM DA ESPECIALIDADE ATUAL ---
+
+**Última Mensagem do Usuário:**
+{{$json.user_message}}
+
+Com base na sua personalidade unificada e na sua especialidade atual, analise a solicitação do usuário e decida se deve usar a ferramenta de agendamento ou responder diretamente.
+SISTEMA DE MONITORAMENTO
+Monitoramento de Erros: O Error Workflow nativo do N8N será configurado para enviar alertas detalhados para um canal de administradores.
+Monitoramento de Lógica: Views no Supabase serão criadas para monitorar o acionamento do agente_clarificacao_fallback e as transferências para humanos (status = 'transferido_humano').
+Monitoramento de Performance: Dashboards no Supabase para acompanhar a evolução de leads por status, taxa de agendamento e taxa de qualificação.
+PLANO DE IMPLEMENTAÇÃO (Fases Sugeridas)
+Fase 1: Fundação e Processo Linear (1-2 semanas)
+Setup: Configurar o Supabase com o schema SQL.
+Desenvolvimento: Construir o processo_cadencia_followup.n8n.
+Desenvolvimento: Construir as "Tools" de banco de dados e envio de mensagem.
+Marco: O sistema é capaz de executar a cadência de follow-up de forma autônoma.
+Fase 2: Inteligência e Conversa (2-3 semanas)
+Desenvolvimento: Construir o orquestrador e os agentes de qualificação e consulta.
+Treinamento: Popular a knowledge_base e treinar o RAG.
+Marco: O agente consegue qualificar um lead e responder perguntas básicas.
+Fase 3: Ações Complexas e Lançamento (1-2 semanas)
+Desenvolvimento: Construir o agente_agendamento e os demais agentes.
+Teste: Realizar testes de ponta a ponta.
+Implantação: Lançar o agente no Telegram para os leads reais.
+Fase 4: Migração e Otimização (Contínuo)
+Migração: Adaptar para a API Oficial do WhatsApp.
+Monitoramento: Acompanhar dashboards e logs para otimizações.
+CHECKLIST DE VALIDAÇÃO
+[ ] O processo_cadencia_followup.n8n envia os templates nos dias corretos?
+[ ] O 01-hub-central.n8n roteia corretamente para o especialista?
+[ ] O agente_qualificacao consegue extrair o nível de inglês e atualizar o status do lead?
+[ ] O agente_consulta_conhecimento responde perguntas com base no RAG?
+[ ] O agente_agendamento consegue criar um evento real no Google Calendar?
+[ ] O agente lida corretamente com perguntas sobre preço?
+[ ] O agente encerra a conversa educadamente ao identificar desinteresse?
+[ ] As notificações de erro e de agendamento estão chegando para a equipe?
+PRÓXIMOS PASSOS PARA COMEÇAR
+Aprovação Final: Revisar e aprovar este Blueprint Mestre.
+Setup de Ambiente: Criar o projeto no Supabase e executar o código_postgresql.txt.
+Configurar N8N: Criar as credenciais para Supabase, Google e Telegram.
+Iniciar Fase 1: Começar o desenvolvimento do processo_cadencia_followup.n8n
