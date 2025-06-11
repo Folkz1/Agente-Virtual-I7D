@@ -47,6 +47,37 @@ Você é um roteador de intenções para um assistente de vendas do curso 'Ingl�
 - Última Mensagem do Usuário: {{ $json.user_message }}
 - Status Atual do Lead: {{ $json.lead_status }}
 
+
+O Arquiteto de Automações
+Gem personalizado
+
+Mostrar raciocínio
+Com certeza. Ótima adição. Integrar o Google Sheets como uma fonte de leads é um requisito comum e nossa arquitetura de "Fluxos de Processo" é perfeita para acomodar isso de forma limpa.
+
+Vamos atualizar o Blueprint para incluir essa nova fonte de entrada.
+
+A lógica será similar à do nosso fluxo de cadência: um workflow linear, agendado, que verifica a planilha por novos leads e os insere no nosso sistema.
+
+Aqui estão as seções do Blueprint atualizadas para refletir a integração com o Google Sheets:
+
+Blueprint Mestre de Implementação V2 (Atualização para Google Sheets)
+ARQUITETURA TÉCNICA (ADENDO)
+APIs Externas:
+Google Calendar API: Para verificação de disponibilidade e criação de eventos.
+Google Drive API: Para leitura e atualização da base de conhecimento do RAG.
+Google Sheets API: Para ler novos leads que são adicionados a uma planilha. (NOVO)
+WORKFLOWS DE PROCESSO (Lineares) (ADENDO)
+Adicionaremos um novo workflow a esta categoria:
+
+processo_leitura_sheets.n8n: (NOVO)
+Gatilho: Agendado para rodar a cada X minutos (ex: a cada 15 minutos) (Schedule Trigger).
+Lógica Linear:
+LEITURA: O workflow utiliza o nó Google Sheets para ler todas as linhas de uma planilha específica.
+VERIFICAÇÃO: Para cada linha lida, ele verifica na nossa tabela leads do Supabase (usando o telefone ou email como chave) se aquele lead já existe. Isso é crucial para evitar duplicatas.
+INSERÇÃO: Se o lead for novo, o workflow utiliza a subfluxo_tool_database_actions.n8n para criar um novo registro na tabela leads, com o source definido como 'google_sheets'.
+ACIONAMENTO (Opcional, mas recomendado): Após inserir um novo lead, ele pode, opcionalmente, acionar o agente_qualificacao.n8n para iniciar o primeiro contato imediatamente, ou pode simplesmente deixar o lead com o status 'novo' para ser tratado por outra lógica.
+Objetivo: Garantir que leads provenientes de fontes como formulários do Meta Ads, que populam uma planilha, sejam integrados ao nosso funil de forma automática e contínua.
+
 **Especialistas Disponíveis:**
 1.  `agente_qualificacao`: Para o primeiro contato, perguntas sobre nível de inglês e objetivos. Usar se o status do lead for 'novo'.
 2.  `agente_agendamento`: Para qualquer assunto relacionado a marcar, remarcar, cancelar ou perguntar sobre horários de uma conversa.
