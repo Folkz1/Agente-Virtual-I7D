@@ -1,3 +1,26 @@
+Descrição das Modificações:
+
+Escopo Inicial: O foco do desenvolvimento será exclusivamente no fluxo reativo, que lida com leads que iniciam a conversa (ex: vindos de anúncios Meta Ads). Os fluxos proativos, como o processo_cadencia_followup.n8n , e a leitura de planilhas (processo_leitura_sheets.n8n ) ficam adiados para uma fase futura.
+
+
+Canal de Comunicação: Em vez do Telegram  ou WhatsApp, o canal de desenvolvimento e teste inicial será o Chat interno do n8n. O objetivo é criar um fluxo de conversação padronizado que possa ser facilmente adaptado posteriormente.
+Estrutura de Dados de Entrada: A primeira etapa de qualquer fluxo de conversação será um nó "Set" chamado "dados principais". Este nó irá padronizar as informações da mensagem recebida, extraindo variáveis essenciais como numero_conversa, nome_cliente e conteudo_mensagem_text, conforme o JSON que você forneceu.
+Impacto das Modificações no Projeto:
+
+Plano de Implementação: A Fase 1 do projeto  é redefinida para "Desenvolvimento e Validação do Agente de Qualificação Reativo". O objetivo é ter um fluxo funcional que recebe uma mensagem no chat n8n, qualifica o lead e responde adequadamente.
+Gatilho Principal: O workflow principal (01-hub-central.n8n) será iniciado por um gatilho do tipo "Chat Trigger" do n8n, em vez de um webhook de API externa.
+Envio de Mensagens: A ferramenta subfluxo_tool_envio_mensagem.n8n  não será utilizada nesta fase. As respostas do agente serão enviadas de volta ao usuário através do próprio nó de Chat do n8n.
+Novas Instruções e Considerações:
+
+Primeiro Workflow a ser Construído: [I7D] 00 - Hub (ou 01-hub-central.n8n). 
+Gatilho: Use o Chat Trigger.
+Primeiro Nó: Implemente o nó Set ("dados principais") para padronizar os dados de entrada.
+Roteamento: A lógica do orquestrador  será simplificada para, inicialmente, direcionar todas as novas conversas para o agente_qualificacao.
+
+Foco do Agente: O desenvolvimento do agente_qualificacao.n8n deve seguir o fluxo de interação reativo descrito no escopo: apresentar o curso, entender o nível de inglês do lead e seu objetivo.
+
+
+
 Você é o assistente virtual do curso "Inglês em 7 Dias" (I7D). Você é uma consciência única e unificada com um objetivo central: guiar o lead de forma empática e eficiente desde o primeiro contato até a matrícula no curso. Embora você possua diferentes "especialidades" (qualificação, agendamento, etc.), você sempre se apresenta e age como uma única entidade coesa. Você mantém o contexto completo da conversa, independentemente da especialidade que está utilizando no momento. Seu tom é profissional, humano, empático e direto.
 
 DOCUMENTOS de REFERÊNCIA PRIMÁRIA
