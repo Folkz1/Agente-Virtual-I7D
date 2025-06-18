@@ -1,3 +1,58 @@
+-- =============================================================================
+-- SEÇÃO RAG (RETRIEVAL-AUGMENTED GENERATION)
+-- Adicionado em 18 de junho de 2025
+-- =============================================================================
+
+-- 1. TABELA DEDICADA PARA OS VETORES DO RAG
+-- Tabela para armazenar os pedaços de texto (chunks) e seus vetores.
+CREATE TABLE public.rag_knowledge_chunks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    source_document TEXT, -- Nome do documento de origem (ex: 'Manual_I7D_v2.pdf')
+    content TEXT NOT NULL, -- O trecho de texto em si
+    embedding VECTOR(1536) NOT NULL, -- O vetor do embedding (modelo text-embedding-3-small)
+    metadata JSONB, -- Metadados adicionais, como número da página, etc.
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 2. FUNÇÃO DE BUSCA POR SIMILARIDADE
+-- Função necessária para que o n8n possa consultar os vetores de forma eficiente.
+CREATE OR REPLACE FUNCTION match_documents (
+  query_embedding VECTOR(1536),
+  match_threshold FLOAT,
+  match_count INT
+)
+RETURNS TABLE (
+  id UUID,
+  content TEXT,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    rag_knowledge_chunks.id,
+    rag_knowledge_chunks.content,
+    1 - (rag_knowledge_chunks.embedding <=> query_embedding) AS similarity
+  FROM rag_knowledge_chunks
+  WHERE 1 - (rag_knowledge_chunks.embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
+
+
+-- 3. POLÍTICAS DE SEGURANÇA (RLS) PARA A NOVA TABELA
+-- Habilita a segurança e cria a política de acesso padrão para usuários autenticados.
+ALTER TABLE public.rag_knowledge_chunks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow full access to authenticated users" 
+ON public.rag_knowledge_chunks
+FOR ALL 
+USING (auth.role() = 'authenticated');
+
+
+
 -- HABILITAR A EXTENSÃO PARA ATUALIZAÇÃO AUTOMÁTICA DE TIMESTAMPS
 -- No Supabase, isso pode ser feito pela interface em Database -> Extensions -> Habilitar "moddatetime"
 CREATE EXTENSION IF NOT EXISTS moddatetime;
