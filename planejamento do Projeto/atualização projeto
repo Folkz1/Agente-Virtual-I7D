@@ -29,3 +29,46 @@ Primeiro Nó: Implemente o nó Set ("dados principais") para padronizar os dados
 Roteamento: A lógica do orquestrador  será simplificada para, inicialmente, direcionar todas as novas conversas para o agente_qualificacao.
 
 Foco do Agente: O desenvolvimento do agente_qualificacao.n8n deve seguir o fluxo de interação reativo descrito no escopo: apresentar o curso, entender o nível de inglês do lead e seu objetivo.
+
+
+ (Atualização) 02: Detalhamento dos Agentes e Arquitetura RAG
+Data da atualização: 18 de junho de 2025
+
+Descrição das Modificações:
+Esta atualização detalha a arquitetura e os prompts para os agentes especialistas de Preço, Agendamento e Consulta de Conhecimento, além de formalizar uma importante decisão de arquitetura para o sistema RAG.
+
+1. Detalhamento de Novos Agentes Especialistas:
+
+agente_tratamento_preco:
+
+Propósito: Lidar com perguntas sobre preço, seguindo um roteiro estratégico para primeiro agregar valor antes de informar valores.
+Lógica: O agente foi projetado com um prompt que o instrui a não fornecer o preço imediatamente, a oferecer materiais como vídeos de depoimentos e a só informar o valor sob insistência do lead, sempre ancorado por uma garantia.
+agente_agendamento:
+
+Propósito: Gerenciar o fluxo de agendamento de videoconferências.
+
+Lógica Aprimorada: Inspirado em sistemas de referência, o prompt do agente foi atualizado para incluir um fluxo mais robusto:
+Coleta de Dados: Verifica se nome e e-mail do lead já existem; caso contrário, solicita antes de prosseguir.
+Verificação Estratégica: Analisa se o pedido do usuário é por um horário específico ou geral, otimizando a chamada à ferramenta.
+Execução Segura (Anti-Conflito): Antes de criar o agendamento final, o agente fará uma última verificação de disponibilidade para aquele slot exato, evitando conflitos de agendamento.
+Apresentação Formatada: Apresentará horários disponíveis e confirmações finais usando formatos de data e hora naturais e amigáveis (ex: "Quinta-feira, 18 de Junho, às 15:30").
+2. Revisão da Arquitetura da Base de Conhecimento (RAG):
+
+Decisão Arquitetural: Para garantir a separação de responsabilidades e a escalabilidade, foi decidido criar uma nova tabela dedicada exclusivamente para a Vector Store do RAG, em vez de usar a tabela genérica knowledge_base, que ficará responsável apenas por regras de negócio e configurações.
+Nova Tabela (public.rag_knowledge_chunks):
+Propósito: Armazenar os "chunks" (pedaços de texto) do manual do curso e seus respectivos vetores (embeddings).
+Estrutura: A tabela contém colunas otimizadas para RAG, como content (para o texto) e embedding (para o vetor), além de um campo source_document para rastreabilidade.
+Segurança: A tabela foi configurada com RLS (Row-Level Security) para permitir acesso apenas a usuários autenticados, seguindo o padrão de segurança do projeto.
+Nova Função SQL (match_documents):
+Propósito: Foi criada a função match_documents no banco de dados, um requisito do nó Supabase Vector Store do n8n para realizar buscas por similaridade de forma eficiente.
+Atualização dos Workflows de Processo:
+processo_update_rag.n8n: Este workflow agora é responsável por ler o documento de conhecimento, dividi-lo, criar os embeddings e salvar os dados na nova tabela rag_knowledge_chunks.
+subfluxo_tool_consulta_rag.n8n: Esta ferramenta será construída para consultar a tabela rag_knowledge_chunks usando a função match_documents.
+3. Próximos Passos Imediatos:
+
+Banco de Dados: Executar o script SQL para criar a tabela rag_knowledge_chunks e a função match_documents.
+Hub: Atualizar o nó Switch no workflow [I7D] 00 - Hub para incluir as rotas para agente_tratamento_preco e agente_agendamento.
+Desenvolvimento:
+Construir o workflow processo_update_rag.n8n para popular a base de conhecimento.
+Construir a ferramenta subfluxo_tool_consulta_rag.n8n.
+Construir o agente agente_consulta_conhecimento  que usará esta ferramenta.
