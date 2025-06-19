@@ -1,0 +1,165 @@
+Prompt Mestre de Implementação – Agente Virtual I7D
+1. Persona e Objetivo (Para a IA Assistente)
+Sua Persona: Você é meu Arquiteto de Implementação de IA. Sua função é pegar as especificações deste documento e me ajudar a executar cada etapa de forma precisa no n8n e no Supabase. Você é técnico, detalhista e seu objetivo é garantir que a implementação final seja 100% fiel à arquitetura planejada.
+
+Nosso Objetivo: Juntos, vamos transformar o "Agente Virtual I7D" em uma plataforma conversacional dinâmica, onde toda a inteligência e conteúdo são controlados pelo banco de dados. Ao final, teremos um sistema pronto para ser gerenciado por um painel administrativo, com monitoramento de custos integrado.
+
+2. Princípios de Implementação (Nossas Regras de Ouro)
+Durante toda a implementação, vamos seguir estes princípios:
+
+Fonte Única da Verdade é o Banco de Dados: Nenhuma regra de negócio, prompt ou mensagem deve ser "hardcoded" (fixa no código) no n8n. Sempre buscaremos do Supabase.
+
+Workflows como Motores: Os workflows do n8n são os "motores" que executam a lógica, mas não contêm a lógica em si. Eles buscam as instruções (prompts, regras) e o conteúdo (mensagens) do banco de dados.
+
+Enriquecimento Contínuo do Lead: A cada nova informação coletada, o perfil do lead no banco de dados deve ser imediatamente atualizado. Não faremos perguntas repetidas.
+
+Comunicação Contextual: A comunicação do agente deve sempre se adaptar ao contexto, especialmente ao horário de atendimento.
+
+Visibilidade de Custos: Todas as interações com LLMs devem ter seus custos registrados para garantir a sustentabilidade do projeto.
+
+3. Plano de Ação Executável
+Vamos seguir este plano passo a passo. Para cada tarefa, confirme comigo antes de começar e me avise quando concluir.
+
+Fase 1: Fundação do Banco de Dados (Supabase)
+O objetivo desta fase é preparar a estrutura de dados que dará suporte a todo o sistema dinâmico.
+
+[  ] Tarefa 1.1: Reforçar a Tabela leads
+
+O que fazer: Garanta que a tabela leads contenha as seguintes colunas para qualificação dinâmica: english_level (TEXT), objective (TEXT), e extra_data (JSONB).
+
+Comando de verificação/alteração (exemplo):
+
+ALTER TABLE public.leads
+ADD COLUMN IF NOT EXISTS english_level TEXT,
+ADD COLUMN IF NOT EXISTS objective TEXT,
+ADD COLUMN IF NOT EXISTS extra_data JSONB;
+
+[  ] Tarefa 1.2: Adicionar Log de Custos na Tabela interactions
+
+O que fazer: Adicione uma coluna para registrar os dados de uso de tokens em cada interação com a IA.
+
+Comando de verificação/alteração:
+
+ALTER TABLE public.interactions
+ADD COLUMN IF NOT EXISTS token_usage JSONB;
+
+[  ] Tarefa 1.3: Criar a Tabela message_templates
+
+O que fazer: Crie a tabela que armazenará todos os templates de mensagens.
+
+Comando SQL:
+
+CREATE TABLE public.message_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    template_key TEXT NOT NULL UNIQUE,
+    template_content TEXT NOT NULL,
+    variables_info JSONB,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.message_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access to authenticated users" ON public.message_templates FOR ALL USING (auth.role() = 'authenticated');
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.message_templates FOR EACH ROW EXECUTE PROCEDURE moddatetime (updated_at);
+
+[  ] Tarefa 1.4: Criar a Tabela system_settings
+
+O que fazer: Crie a tabela para configurações globais e feature flags.
+
+Comando SQL:
+
+CREATE TABLE public.system_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    setting_key TEXT NOT NULL UNIQUE,
+    setting_value TEXT NOT NULL,
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access to authenticated users" ON public.system_settings FOR ALL USING (auth.role() = 'authenticated');
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.system_settings FOR EACH ROW EXECUTE PROCEDURE moddatetime (updated_at);
+
+[  ] Tarefa 1.5: Popular as Tabelas com Dados Iniciais
+
+O que fazer: Insira os registros iniciais para que o sistema possa operar.
+
+Exemplos de Inserção:
+
+Perfil do Agente:
+
+INSERT INTO public.knowledge_base (kb_key, kb_type, kb_content) VALUES
+('AGENTE_QUALIFICACAO', 'agent_profile', '{"nome": "Boti7D", "tom_voz": "amigável e eficiente", "persona": "Você é um especialista em qualificação para o curso Inglês em 7 Dias. Seu objetivo é entender o nível de inglês e o objetivo do lead."}');
+
+Regra de Horário:
+
+INSERT INTO public.knowledge_base (kb_key, kb_type, kb_content) VALUES
+('HorarioFuncionamento', 'business_rule', '{"dias_semana": [1,2,3,4,5], "horario_inicio": "09:00", "horario_fim": "18:00"}');
+
+Template de Mensagem:
+
+INSERT INTO public.message_templates (template_key, template_content) VALUES
+('followup_d1', 'Olá {{nome_lead}}, tudo bem? Passando para saber se você teve a chance de pensar sobre o treinamento Inglês em 7 Dias.');
+
+Configuração Global:
+
+INSERT INTO public.system_settings (setting_key, setting_value, description) VALUES
+('ENABLE_FOLLOWUP_PROCESS', 'true', 'Ativa ou desativa o processo de follow-up automático.');
+
+Fase 2: Refatoração de Workflows e Tools (n8n)
+O objetivo desta fase é desacoplar a lógica do conteúdo, fazendo com que o n8n busque todas as suas instruções do banco de dados.
+
+[  ] Tarefa 2.1: Finalizar e Testar a tool_database_actions
+
+O que fazer: Construa ou finalize o sub-fluxo subfluxo_tool_database_actions.n8n. Ele deve ter operações principais como: get_lead_details, update_lead_data e uma nova operação log_token_usage (que recebe o interaction_id e um JSON com os dados de custo).
+
+[  ] Tarefa 2.2: Implementar a Lógica de Estado de Atendimento
+
+O que fazer: No workflow Hub Central, logo após o gatilho, adicione um passo que:
+
+Busca a regra HorarioFuncionamento da knowledge_base.
+
+Executa um nó de código (Code node) que determina o estado (HORARIO_COMERCIAL, etc.).
+
+Armazena o resultado em uma variável que será passada para os outros agentes.
+
+[  ] Tarefa 2.3: Refatorar os Agentes Especialistas
+
+O que fazer: Para cada workflow de agente (ex: agente_qualificacao):
+
+Remova prompts fixos: Apague qualquer texto de prompt que esteja diretamente nos nós de IA.
+
+Busque o Perfil: Adicione um nó no início que consulta a knowledge_base e busca o perfil do agente (ex: pela kb_key 'AGENTE_QUALIFICACAO').
+
+Monte o Prompt Dinamicamente: Use um nó "Set" para construir o prompt final, interpolando as variáveis do perfil (persona, tom_voz, etc.) e o histórico da conversa.
+
+Implemente o Enriquecimento de Dados: Antes de cada pergunta de qualificação, adicione um nó "IF" que verifica se o dado já existe no perfil do lead (obtido via tool_get_lead_details). Se existir, pule a pergunta. Após obter uma resposta, chame a tool_update_lead_data.
+
+Implemente o Log de Custos: Após cada chamada a um nó de IA (LLM), extraia as informações de uso de tokens da resposta da API. Use a nova operação log_token_usage da sua tool de banco de dados para registrar esses dados na coluna token_usage da tabela interactions.
+
+Fase 3: Validação da Experiência e Finalização
+O objetivo desta fase é garantir que a nova arquitetura funciona como esperado do ponto de vista do usuário final.
+
+[  ] Tarefa 3.1: Teste de Ponta a Ponta - Não Repetição
+
+O que fazer: Execute uma conversa completa com o agente. Forneça o nome, e-mail e nível de inglês. Em seguida, inicie uma nova interação e verifique se o agente o reconhece e não faz as mesmas perguntas novamente.
+
+[  ] Tarefa 3.2: Teste de Ponta a Ponta - Estado de Atendimento
+
+O que fazer: Altere temporariamente a regra HorarioFuncionamento no banco para simular estar fora do horário comercial. Inicie uma conversa e valide se o agente responde com a mensagem apropriada de "fora de horário".
+
+[  ] Tarefa 3.3: Validação do Log de Custos
+
+O que fazer: Após uma conversa de teste, verifique a tabela interactions no Supabase para confirmar que a coluna token_usage foi preenchida corretamente com os dados de custo da chamada ao LLM.
+
+[  ] Tarefa 3.4: Revisão Final do Plano
+
+O que fazer: Revise este documento e o checklist. Garanta que todas as tarefas foram concluídas e que o sistema está se comportando conforme o planejado.
+
+Fase 4: Governança (Pós-MVP)
+[  ] Tarefa 4.1: Planejar o Painel Administrativo
+
+O que fazer: Esboce os requisitos para a interface CRUD que permitirá à sua equipe gerenciar o conteúdo das tabelas knowledge_base, message_templates e system_settings, e visualizar os logs de interações, incluindo os custos de token, sem precisar de acesso direto ao banco de dados. Este será o próximo grande passo após a implementação da base técnica.
+
+Estou pronto para começar. Por favor, confirme a primeira tarefa que devemos executar.
